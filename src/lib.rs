@@ -12,6 +12,7 @@ use std::cmp::Ordering;
 use std::f32;
 use std::fmt::Debug;
 use std::sync::Arc;
+use serde::{Serialize, Deserialize};
 
 #[cfg(target_arch = "wasm32")]
 pub mod wasm;
@@ -72,7 +73,7 @@ fn preprocess(image: &GrayImage) -> Vec<f32> {
     return prepped;
 }
 
-type Identifier = u32;
+pub type Identifier = u32;
 
 #[derive(Debug)]
 pub struct MultiMosseTracker {
@@ -147,6 +148,7 @@ impl MultiMosseTracker {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Prediction {
     pub location: (u32, u32),
     pub psr: f32,

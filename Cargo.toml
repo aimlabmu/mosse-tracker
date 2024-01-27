@@ -21,12 +21,14 @@ image = { version = "0.24.2", default-features = false, features = [
 ] }
 rustfft = "6.0.1"
 imageproc = { version = "0.23.0", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 # for font rendering on output/debug frames (same version as imageproc uses)
 rusttype = "0.9.2"
 
 [target.wasm32-unknown-unknown.dependencies]
-wasm-bindgen = { version = "0.2" }
+wasm-bindgen = { version = "0.2.88" }
 
 [dev-dependencies]
 anyhow = "1.0.65"

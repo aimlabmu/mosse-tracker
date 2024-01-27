@@ -2,41 +2,57 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Mosse Tracker</title>
+    <title>Multi-Object Tracking Debugger</title>
     <style>
       body {
         text-align: center;
       }
 
       #container {
-        margin: 0px auto;
-        border: 10px #333 solid;
+        position: relative;
         display: flex;
         justify-content: center;
+        align-items: center; 
+      }
+
+      #canvasElement {
+        width: 640px;
+        height: 480px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 1;
       }
 
       #videoElement {
-        visibility: hidden;
-        width: 1px;
-        height: 1px;
+        width: 640px;
+        height: 480px;
+        position: absolute;
+        top: 0;
+        left: 0;
         background-color: #666;
+        z-index: 0;
       }
     </style>
   </head>
 
   <body>
-    <h1>Mosse Multitracker Example</h1>
-    <p>Click on the image to track something.</p>
-    <video autoplay="true" id="videoElement"></video>
+    <h1>Multi-Object Tracking Debugger</h1>
+    <p>Click on the video to track something.</p>
+
     <div id="container">
-      <img id="img" />
+      <video autoplay="true" id="videoElement"></video>
+      <canvas
+        id="canvasElement"
+      ></canvas>
     </div>
 
     <script type="module">
       const video = document.querySelector("#videoElement");
-      const canvas = document.createElement("canvas");
-      const img = document.getElementById("img");
-      img.onclick = updatePosition;
+      const canvas = document.createElement("canvas"); // Canvas for capturing frames
+      const overlayCanvas = document.getElementById("canvasElement"); // Canvas for drawing
+      video.onclick = updatePosition;
       let tracker = null;
 
       import init, { MultiMosseTrackerJS } from "./pkg/mosse.js";
@@ -64,6 +80,8 @@
             );
             canvas.width = width;
             canvas.height = height;
+            overlayCanvas.width = width; // Set overlay canvas size
+            overlayCanvas.height = height;
           }
 
           const ctx = canvas.getContext("2d");
@@ -72,11 +90,33 @@
           const base64 = canvas.toDataURL("image/png");
           const blob = await (await fetch(base64)).blob();
           let frame = new Uint8Array(await blob.arrayBuffer());
-          const tracked_frame = tracker.track(frame);
+          const tracked_results = tracker.track(frame);
+          // [[id, {'location': [x, y], 'psr': psr}]]
+          console.log(tracked_results);
+          const ctxOverlay = overlayCanvas.getContext("2d");
+          ctxOverlay.clearRect(0, 0, width, height);
 
-          const tracked_blob = new Blob([tracked_frame], { type: "image/png" });
-          const url = URL.createObjectURL(tracked_blob);
-          img.src = url;
+          // plot the tracked results
+          JSON.parse(tracked_results).forEach((tracked) => {
+            const id = tracked[0];
+            const location = tracked[1]["location"];
+            const psr = tracked[1]["psr"];
+
+            console.log(id, location, psr)
+
+            // Draw rectangle
+            ctxOverlay.strokeStyle = "yellow";
+            ctxOverlay.strokeRect(location[0] - 24, location[1] - 24, 48, 48); // Assuming a fixed size for now
+
+            // Draw PSR
+            ctxOverlay.fillStyle = "white";
+            ctxOverlay.font = "12px Arial";
+            ctxOverlay.fillText(
+              `PSR: ${psr.toFixed(2)}`,
+              location[0],
+              location[1] - 5
+            );
+          });
         } else {
         }
       }, 200);
@@ -84,9 +124,14 @@
       async function updatePosition(event) {
         let x = event.offsetX;
         let y = event.offsetY;
-        const blob = await (await fetch(img.src)).blob();
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, width, height);
+        const base64 = canvas.toDataURL("image/png");
+        const blob = await (await fetch(base64)).blob();
         let frame = new Uint8Array(await blob.arrayBuffer());
-        tracker.set_target(x, y, frame);
+        tracker.set_target(1, x, y, frame);
       }
     </script>
   </body>
